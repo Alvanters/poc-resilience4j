@@ -1,2 +1,4 @@
-# poc-resilience
-POC Resilience4J
+# POC Resilience4J
+
+## Run
+`mvn spring-boot:run`
