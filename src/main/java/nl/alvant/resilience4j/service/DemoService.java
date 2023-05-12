@@ -6,6 +6,7 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -14,77 +15,87 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class DemoService {
 
-    @CircuitBreaker(name = "cb-instanceA", fallbackMethod = "cbFallBack")
-    public String circuitBreaker() {
-        log("circuitbreaker");
-        return cbRemoteCall();
+//    @RateLimiter(name = "rl-instanceA")
+//    public String rateLimiter() {
+//        log("ratelimiter");
+//        return "Executing Rate Limited Method";
+//    }
+//
+//    @TimeLimiter(name = "tl-instanceA")
+//    public CompletableFuture<String> timeLimiter() {
+//        log("timelimiter");
+//        return CompletableFuture.supplyAsync(this::timeLimiterRemoteCall);
+//    }
+//
+//    private String timeLimiterRemoteCall() {
+//        //Will fail 50% of the time
+//        double random = Math.random();
+//        if (random < 0.5) {
+//            return "Executing Time Limited Call...";
+//        } else {
+//            try {
+//                System.out.println("Delaying Execution");
+//                Thread.sleep(3000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        return "Exception Will be Raised";
+//    }
+
+    @Retry(name = "retryA", fallbackMethod = "fallBack")
+    public String retryA() {
+        log("retryA");
+        RestTemplate restTemplate = new RestTemplate();
+        return restTemplate.getForObject("http://localhost:6060/service2", String.class);
     }
 
-    private String cbRemoteCall() {
-        double random = Math.random();
-        //should fail more than 70% of time
-        if (random <= 0.7) {
-            throw new RuntimeException("CB Remote Call Fails");
-        }
-        return "CB Remote Call Executed";
+    @Retry(name = "retryB", fallbackMethod = "fallBack")
+    public String retryB() {
+        log("retryB");
+        RestTemplate restTemplate = new RestTemplate();
+        return restTemplate.getForObject("http://localhost:6060/service2", String.class);
     }
 
-    public String cbFallBack(Exception exception) {
-        return String.format("Fallback Execution for Circuit Breaker. Error Message: %s\n", exception.getMessage());
-    }
-
-    @RateLimiter(name = "rl-instanceA")
-    public String rateLimiter() {
-        log("ratelimiter");
-        return "Executing Rate Limited Method";
-    }
-
-    @TimeLimiter(name = "tl-instanceA")
-    public CompletableFuture<String> timeLimiter() {
-        log("timelimiter");
-        return CompletableFuture.supplyAsync(this::timeLimiterRemoteCall);
-    }
-
-    private String timeLimiterRemoteCall() {
-        //Will fail 50% of the time
-        double random = Math.random();
-        if (random < 0.5) {
-            return "Executing Time Limited Call...";
-        } else {
-            try {
-                System.out.println("Delaying Execution");
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        return "Exception Will be Raised";
-    }
-
-    @Retry(name = "re-instanceA")
-    public String retry() {
-        log("retry");
-        return retryRemoteCall();
-    }
-
-    private String retryRemoteCall() {
-        //will fail 80% of the time
+    @Retry(name = "retryB", fallbackMethod = "fallBack")
+    public String retryC() {
+        log("retryC");
         double random = Math.random();
         if (random <= 0.8) {
             throw new RuntimeException("Retry Remote Call Fails");
         }
 
-        return "Executing Retry Remote Call";
+        return "Success";
     }
 
-    @Bulkhead(name = "tp-instanceA", type = Bulkhead.Type.THREADPOOL)
-    public String bulkHead() {
-        log("bulkhead");
-        return "Executing Bulk Head Remote call";
+    @CircuitBreaker(name = "circuitD", fallbackMethod = "fallback")
+    @Retry(name = "retryD")
+    public String retryD(int success) {
+        log("retryD");
+        if (success == 0) {
+            double random = Math.random();
+            if (random <= 0.8) {
+                throw new RuntimeException("Retry Remote Call Fails");
+            }
+            return "Success";
+        } else if (success < 0) {
+            throw new RuntimeException("Retry Remote Call Fails");
+        } else {
+            return "Success";
+        }
     }
 
-    private void log(String call){
-        System.out.println(call + " " + Thread.currentThread().getName() + "...running  " +
-                LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+    private void log(String call) {
+        System.out.println(Thread.currentThread().getName() + " - " + call + " - " + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
+    }
+
+    public String fallBack(Exception e) {
+        log("fallback");
+        return String.format("Fallback Execution. Error Message: %s\n", e.getMessage());
+    }
+
+    public String fallback(int success, Exception e) {
+        log("fallback with success " + success);
+        return String.format("Fallback Execution. Error Message: %s\n", e.getMessage());
     }
 }

@@ -11,13 +11,43 @@ management:
       enabled: true
 
 resilience4j:
-  circuitbreaker:
+  retry:
+    retry-aspect-order: 2 # The higher the order value, the higher the priority
     instances:
-      cb-instanceA:
-        failure-rate-threshold: 60  #The Threshold Percentage Above Which the Circuit Breaker will move from Closed to Open State.
-        wait-duration-in-open-state: 5000  #Time in milliseconds, in which the circuit breaker is to stay in open state before moving to half-open state
-        permitted-number-of-calls-in-half-open-state: 10
-        minimum-number-of-calls: 10  #The number of calls after which the error rate is calculated. I have assigned it with a small value for test purpose.
+      retryA:
+        max-attempts: 3
+        wait-duration: 5s
+      retryB:
+        max-attempts: 3
+        wait-duration: 5s
+        enable-exponential-backoff: true # wait-duration * (exponential-backoff-multiplier ^ (retry iteration count))
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.lang.RuntimeException
+          - java.io.IOException
+          - java.net.ConnectException
+      retryD:
+        max-attempts: 3
+        wait-duration: 5s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.RestClientException
+          - java.lang.RuntimeException
+          - java.io.IOException
+          - java.net.ConnectException
+  circuitbreaker:
+    circuit-breaker-aspect-order: 1 # The higher the order value, the higher the priority
+    instances:
+      circuitD:
+        wait-duration-in-open-state: 1m
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-type: count-based
+        sliding-window-size: 5 # consider a set of 5 consecutive events ( success or failures), to determine if the circuit breaker should transition to an OPEN or CLOSED state
+        minimum-number-of-calls: 5 # if in 5 calls, 60% of the calls fail or are slow ( i.e at least 3 calls), then the circuit breaker would move to the OPEN state. Once the circuit breaker moves to the OPEN state, it would wait in this state for 1 minute before moving to a HALF-OPEN state
+        slow-call-duration-threshold: 10s
+        slow-call-rate-threshold: 60
+        failure-rate-threshold: 60
   ratelimiter:
     instances:
       rl-instanceA:
@@ -34,11 +64,3 @@ resilience4j:
       tl-instanceA:
         timeout-duration: 2s # The max amount of time a call can last
         cancel-running-future: false #do not cancel the Running Completable Futures After TimeOut.
-  retry:
-    instances:
-      re-instanceA:
-        max-attempts: 3
-        wait-duration: 1s # After this time, the call will be considered a failure and will be retried
-        retry-exceptions: #The List Of Exceptions That Will Trigger a Retry
-          - java.lang.RuntimeException
-          - java.io.IOException
