@@ -32,7 +32,7 @@ public class DemoService {
         if (random <= 0.8) {
             throw new RuntimeException("Retry Remote Call Fails");
         }
-
+        System.out.println(Thread.currentThread().getName() + " - retryC SUCCESS- " + LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
         return "Success";
     }
 
