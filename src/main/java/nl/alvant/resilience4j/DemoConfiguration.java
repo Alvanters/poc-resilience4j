@@ -9,7 +9,7 @@ public class DemoConfiguration {
 
     @Bean
     public CircuitBreakerConfigCustomizer circuitBreakerConfigCustomizer() {
-        return CircuitBreakerConfigCustomizer.of("cb-instanceB",builder -> builder.minimumNumberOfCalls(10)
+        return CircuitBreakerConfigCustomizer.of("cb-instanceB", builder -> builder.minimumNumberOfCalls(10)
                 .permittedNumberOfCallsInHalfOpenState(15));
     }
 }

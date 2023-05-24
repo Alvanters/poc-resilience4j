@@ -1,47 +1,15 @@
 package nl.alvant.resilience4j.service;
 
-import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 public class DemoService {
-
-//    @RateLimiter(name = "rl-instanceA")
-//    public String rateLimiter() {
-//        log("ratelimiter");
-//        return "Executing Rate Limited Method";
-//    }
-//
-//    @TimeLimiter(name = "tl-instanceA")
-//    public CompletableFuture<String> timeLimiter() {
-//        log("timelimiter");
-//        return CompletableFuture.supplyAsync(this::timeLimiterRemoteCall);
-//    }
-//
-//    private String timeLimiterRemoteCall() {
-//        //Will fail 50% of the time
-//        double random = Math.random();
-//        if (random < 0.5) {
-//            return "Executing Time Limited Call...";
-//        } else {
-//            try {
-//                System.out.println("Delaying Execution");
-//                Thread.sleep(3000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        return "Exception Will be Raised";
-//    }
 
     @Retry(name = "retryA", fallbackMethod = "fallBack")
     public String retryA() {
